@@ -139,11 +139,13 @@ class BILSTM_Model(object):
         # 准备数据
         word_lists, tag_lists, indices = sort_by_lengths(word_lists, tag_lists)
         tensorized_sents, lengths = tensorized(word_lists, word2id)
-        tensorized_sents = tensorized_sents.to(self.device)
+        # 数据量太大，临时转移至CPU
+        #tensorized_sents = tensorized_sents.to(self.device)
 
-        self.best_model.eval()
+        temp_best_model = self.best_model.cpu()
+        temp_best_model.eval()
         with torch.no_grad():
-            batch_tagids = self.best_model.test(
+            batch_tagids = temp_best_model.test(
                 tensorized_sents, lengths, tag2id)
 
         # 将id转化为标注
