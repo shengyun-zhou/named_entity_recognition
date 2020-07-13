@@ -53,7 +53,7 @@ def crf_train_eval(train_data, test_data, remove_O=False):
 
 
 def bilstm_train_and_eval(train_data, dev_data, test_data,
-                          word2id, tag2id, crf=True, remove_O=False):
+                          word2id, tag2id, crf=True, remove_O=False, cbow_emb=None):
     train_word_lists, train_tag_lists = train_data
     dev_word_lists, dev_tag_lists = dev_data
     test_word_lists, test_tag_lists = test_data
@@ -61,7 +61,7 @@ def bilstm_train_and_eval(train_data, dev_data, test_data,
     start = time.time()
     vocab_size = len(word2id)
     out_size = len(tag2id)
-    bilstm_model = BILSTM_Model(vocab_size, out_size, crf=crf)
+    bilstm_model = BILSTM_Model(vocab_size, out_size, crf=crf, cbow_emb=cbow_emb)
     bilstm_model.train(train_word_lists, train_tag_lists,
                        dev_word_lists, dev_tag_lists, word2id, tag2id)
 

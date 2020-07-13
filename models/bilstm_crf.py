@@ -11,7 +11,7 @@ from .bilstm import BiLSTM
 
 
 class BILSTM_Model(object):
-    def __init__(self, vocab_size, out_size, crf=True):
+    def __init__(self, vocab_size, out_size, crf=True, cbow_emb=False):
         """功能：对LSTM的模型进行训练与测试
            参数:
             vocab_size:词典大小
@@ -32,7 +32,7 @@ class BILSTM_Model(object):
             self.cal_loss_func = cal_loss
         else:
             self.model = BiLSTM_CRF(vocab_size, self.emb_size,
-                                    self.hidden_size, out_size).to(self.device)
+                                    self.hidden_size, out_size, pretrain_cbow_emb=cbow_emb).to(self.device)
             self.cal_loss_func = cal_lstm_crf_loss
 
         # 加载训练参数：
@@ -174,7 +174,7 @@ class BILSTM_Model(object):
 
 
 class BiLSTM_CRF(nn.Module):
-    def __init__(self, vocab_size, emb_size, hidden_size, out_size):
+    def __init__(self, vocab_size, emb_size, hidden_size, out_size, pretrain_cbow_emb=None):
         """初始化参数：
             vocab_size:字典的大小
             emb_size:词向量的维数
@@ -182,7 +182,7 @@ class BiLSTM_CRF(nn.Module):
             out_size:标注的种类
         """
         super(BiLSTM_CRF, self).__init__()
-        self.bilstm = BiLSTM(vocab_size, emb_size, hidden_size, out_size)
+        self.bilstm = BiLSTM(vocab_size, emb_size, hidden_size, out_size, pretrain_emb=pretrain_cbow_emb)
 
         # CRF实际上就是多学习一个转移矩阵 [out_size, out_size] 初始化为均匀分布
         self.transition = nn.Parameter(

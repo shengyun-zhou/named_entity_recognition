@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 
 class BiLSTM(nn.Module):
-    def __init__(self, vocab_size, emb_size, hidden_size, out_size):
+    def __init__(self, vocab_size, emb_size, hidden_size, out_size, pretrain_emb=None):
         """初始化参数：
             vocab_size:字典的大小
             emb_size:词向量的维数
@@ -12,7 +12,14 @@ class BiLSTM(nn.Module):
             out_size:标注的种类
         """
         super(BiLSTM, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, emb_size)
+        if pretrain_emb is not None:
+            self.embedding = pretrain_emb
+            self.pretrain_emb = True
+            print('Use pretrained embedding')
+            assert self.embedding.num_embeddings == vocab_size and self.embedding.embedding_dim == emb_size
+        else:
+            self.embedding = nn.Embedding(vocab_size, emb_size)
+            self.pretrain_emb = False
         self.bilstm = nn.LSTM(emb_size, hidden_size,
                               batch_first=True,
                               bidirectional=True)
@@ -21,6 +28,8 @@ class BiLSTM(nn.Module):
 
     def forward(self, sents_tensor, lengths):
         emb = self.embedding(sents_tensor)  # [B, L, emb_size]
+        if self.pretrain_emb:
+            emb = emb.detach()
 
         packed = pack_padded_sequence(emb, lengths, batch_first=True)
         rnn_out, _ = self.bilstm(packed)
