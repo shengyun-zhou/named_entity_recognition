@@ -8,7 +8,9 @@ import torch.optim as optim
 from .util import tensorized, sort_by_lengths, cal_loss, cal_lstm_crf_loss
 from .config import TrainingConfig, LSTMConfig
 from .bilstm import BiLSTM
-
+import matplotlib.pyplot as plt
+import tempfile
+import traceback
 
 class BILSTM_Model(object):
     def __init__(self, vocab_size, out_size, crf=True, cbow_emb=False):
@@ -28,11 +30,12 @@ class BILSTM_Model(object):
         # 根据是否添加crf初始化不同的模型 选择不一样的损失计算函数
         if not crf:
             self.model = BiLSTM(vocab_size, self.emb_size,
-                                self.hidden_size, out_size).to(self.device)
+                                self.hidden_size, out_size, dropout=LSTMConfig.dropout).to(self.device)
             self.cal_loss_func = cal_loss
         else:
             self.model = BiLSTM_CRF(vocab_size, self.emb_size,
-                                    self.hidden_size, out_size, pretrain_cbow_emb=cbow_emb).to(self.device)
+                                    self.hidden_size, out_size, dropout=LSTMConfig.dropout,
+                                    pretrain_emb=cbow_emb).to(self.device)
             self.cal_loss_func = cal_lstm_crf_loss
 
         # 加载训练参数：
@@ -57,18 +60,20 @@ class BILSTM_Model(object):
         dev_word_lists, dev_tag_lists, _ = sort_by_lengths(
             dev_word_lists, dev_tag_lists)
         val_losses = []
+        train_epoch_mean_losses = []
 
         B = self.batch_size
         for e in range(1, self.epoches+1):
             self.step = 0
             losses = 0.
+            train_epoch_loss = 0.
             for ind in range(0, len(word_lists), B):
                 batch_sents = word_lists[ind:ind+B]
                 batch_tags = tag_lists[ind:ind+B]
 
                 losses += self.train_step(batch_sents,
                                           batch_tags, word2id, tag2id)
-
+                train_epoch_loss += losses
                 if self.step % TrainingConfig.print_step == 0:
                     total_step = (len(word_lists) // B + 1)
                     print("Epoch {}, step/total_step: {}/{} {:.2f}% Loss:{:.4f}".format(
@@ -83,7 +88,21 @@ class BILSTM_Model(object):
                 dev_word_lists, dev_tag_lists, word2id, tag2id)
             print("Epoch {}, Val Loss:{:.4f}".format(e, val_loss))
             val_losses.append(val_loss)
+            train_epoch_mean_losses.append(train_epoch_loss / (len(word_lists) // B + 1))
+        print('Train losses: ', train_epoch_mean_losses)
         print('Val losses: ', val_losses)
+        try:
+            plt.xlabel('epoch')
+            plt.ylabel('loss')
+            x = list(range(1, self.epoches + 1))
+            plt.plot(x, train_epoch_mean_losses, 'b', label='train loss')
+            plt.plot(x, val_losses, 'g', label='val loss')
+            plt.legend()
+            with tempfile.NamedTemporaryFile(delete=False, prefix='bilstm-', suffix='.svg') as f:
+                plt.savefig(f.name, format='svg')
+                print('Save loss figure as %s' % f.name)
+        except:
+            traceback.print_exc()
 
     def train_step(self, batch_sents, batch_tags, word2id, tag2id):
         self.model.train()
@@ -177,7 +196,7 @@ class BILSTM_Model(object):
 
 
 class BiLSTM_CRF(nn.Module):
-    def __init__(self, vocab_size, emb_size, hidden_size, out_size, pretrain_cbow_emb=None):
+    def __init__(self, vocab_size, emb_size, hidden_size, out_size, dropout=False, pretrain_emb=None):
         """初始化参数：
             vocab_size:字典的大小
             emb_size:词向量的维数
@@ -185,7 +204,7 @@ class BiLSTM_CRF(nn.Module):
             out_size:标注的种类
         """
         super(BiLSTM_CRF, self).__init__()
-        self.bilstm = BiLSTM(vocab_size, emb_size, hidden_size, out_size, pretrain_emb=pretrain_cbow_emb)
+        self.bilstm = BiLSTM(vocab_size, emb_size, hidden_size, out_size, dropout=dropout, pretrain_emb=pretrain_emb)
 
         # CRF实际上就是多学习一个转移矩阵 [out_size, out_size] 初始化为均匀分布
         self.transition = nn.Parameter(

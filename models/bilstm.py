@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
-
+from torch.nn import functional as F
 
 class BiLSTM(nn.Module):
-    def __init__(self, vocab_size, emb_size, hidden_size, out_size, pretrain_emb=None):
+    def __init__(self, vocab_size, emb_size, hidden_size, out_size, dropout=False, pretrain_emb=None):
         """初始化参数：
             vocab_size:字典的大小
             emb_size:词向量的维数
@@ -14,27 +14,27 @@ class BiLSTM(nn.Module):
         super(BiLSTM, self).__init__()
         if pretrain_emb is not None:
             self.embedding = pretrain_emb
-            self.pretrain_emb = True
             print('Use pretrained embedding')
             assert self.embedding.num_embeddings == vocab_size and self.embedding.embedding_dim == emb_size
         else:
             self.embedding = nn.Embedding(vocab_size, emb_size)
-            self.pretrain_emb = False
         self.bilstm = nn.LSTM(emb_size, hidden_size,
                               batch_first=True,
                               bidirectional=True)
 
         self.lin = nn.Linear(2*hidden_size, out_size)
+        self.dropout = dropout
 
     def forward(self, sents_tensor, lengths):
         emb = self.embedding(sents_tensor)  # [B, L, emb_size]
-        if self.pretrain_emb:
-            emb = emb.detach()
-
+        if self.dropout:
+            F.dropout(emb, inplace=True)
         packed = pack_padded_sequence(emb, lengths, batch_first=True)
         rnn_out, _ = self.bilstm(packed)
         # rnn_out:[B, L, hidden_size*2]
         rnn_out, _ = pad_packed_sequence(rnn_out, batch_first=True)
+        if self.dropout:
+            F.dropout(rnn_out, inplace=True)
 
         scores = self.lin(rnn_out)  # [B, L, out_size]
 
