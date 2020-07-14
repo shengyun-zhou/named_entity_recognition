@@ -1,10 +1,8 @@
 # 中文命名实体识别
 
-
-
 ## 数据集
 
-本项目尝试使用了多种不同的模型（包括HMM，CRF，Bi-LSTM，Bi-LSTM+CRF）来解决中文命名实体识别问题，数据集用的是论文ACL 2018[Chinese NER using Lattice LSTM](https://github.com/jiesutd/LatticeLSTM)中收集的简历数据，数据的格式如下，它的每一行由一个字及其对应的标注组成，标注集采用BIOES，句子之间用一个空行隔开。
+本项目尝试使用了多种不同的模型（包括HMM，CRF，Bi-LSTM，Bi-LSTM+CRF）来解决中文命名实体识别问题，数据集使用PKU语料。数据的格式如下，它的每一行由一个字及其对应的标注组成，标注集采用BIOES，句子之间用一个空行隔开。
 
 ```
 美	B-LOC
@@ -31,7 +29,7 @@
 
 + 默认训练参数：
 
-  CRF迭代100轮，BiLSTM部分训练30轮，Embedding size = 128
+  CRF迭代100轮，BiLSTM部分训练30轮，Embedding size = 128，LSTM隐层维数：128，Batch size：64
 
 |            | 准确率 | 召回率 | F1     |
 | ---------- | ------ | ------ | ------ |
@@ -40,7 +38,42 @@
 | BiLSTM     | 0.9167 | 0.9167 | 0.9156 |
 | BiLSTM-CRF | 0.9292 | 0.9297 | 0.9293 |
 
-具体的输出可以查看`output.txt`文件。
++ 增加BiLSTM部分的训练轮数：
+
+  训练轮数：60轮
+
+  |            | 准确率 | 召回率 | F1     |
+  | ---------- | ------ | ------ | ------ |
+  | BiLSTM     | 0.9165 | 0.9175 | 0.9161 |
+  | BiLSTM-CRF | 0.9323 | 0.9329 | 0.9325 |
+
+  BiLSTM模型在训练过程中，验证误差一开始逐轮下降，但第15轮后验证误差逐渐上升，由于最后的测试模型使用的是验证误差最低的那一轮模型，所以效果与30轮几乎没有差异。
+
+  ![bilstm-valloss](imgs/bilstm-60epoch-valloss.svg)
+
+  BiLSTM-CRF模型的训练也是类似的情况，在第14轮验证误差达到最低后，之后误差就逐渐上升，效果与30轮差异不大。
+
+  ![bilstm-valloss](imgs/bilstm-crf-60epoch-valloss.svg)
+
++ 增加Embedding size：
+
+  Embedding size：256，LSTM隐层维数：128
+
+  |            | 准确率 | 召回率 | F1     |
+  | ---------- | ------ | ------ | ------ |
+  | BiLSTM-CRF | 0.9344 | 0.9349 | 0.9346 |
+
+  跟之前情况差不多，在第11轮时验证误差达到最低值，最终效果也差不多。
+
+  ![bilstm-valloss](imgs/bilstm-crf-256emb-valloss.svg)
+
+  Embedding size：256，LSTM隐层维数：256
+
+  |            | 准确率 | 召回率 | F1     |
+  | ---------- | ------ | ------ | ------ |
+  | BiLSTM-CRF | 0.9323 | 0.9326 | 0.9323 |
+
+  ![bilstm-valloss](imgs/bilstm-crf-256emb-256hidden-valloss.svg)
 
 ## 快速开始
 

@@ -12,7 +12,7 @@ def main():
     parser.add_argument('--crf', action='store_true', default=False, help='Train CRF')
     parser.add_argument('--bilstm', action='store_true', default=False, help='Train BiLSTM')
     parser.add_argument('--bilstm-crf', action='store_true', default=False, help='Train BiLSTM-CRF')
-    parser.add_argument('--cbow', action='store_true', default=False, help='Train or use CBOW embedding for iLSTM-CRF')
+    parser.add_argument('--cbow', action='store_true', default=False, help='Train or use CBOW embedding for BiLSTM-CRF')
     args = parser.parse_args()
 
     """训练模型，评估结果"""

@@ -56,6 +56,7 @@ class BILSTM_Model(object):
         word_lists, tag_lists, _ = sort_by_lengths(word_lists, tag_lists)
         dev_word_lists, dev_tag_lists, _ = sort_by_lengths(
             dev_word_lists, dev_tag_lists)
+        val_losses = []
 
         B = self.batch_size
         for e in range(1, self.epoches+1):
@@ -81,6 +82,8 @@ class BILSTM_Model(object):
             val_loss = self.validate(
                 dev_word_lists, dev_tag_lists, word2id, tag2id)
             print("Epoch {}, Val Loss:{:.4f}".format(e, val_loss))
+            val_losses.append(val_loss)
+        print('Val losses: ', val_losses)
 
     def train_step(self, batch_sents, batch_tags, word2id, tag2id):
         self.model.train()
